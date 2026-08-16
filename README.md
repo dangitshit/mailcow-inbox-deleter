@@ -1,6 +1,6 @@
 # MAIL-DELETER
 
-A fast CLI tool to bulk-delete Mailcow mailboxes from a specific domain via the Mailcow REST API — without touching the domain itself.
+A CLI tool to bulk-delete Mailcow mailboxes from a domain via the Mailcow REST API — without touching the domain itself.
 
 ---
 
@@ -10,14 +10,14 @@ A fast CLI tool to bulk-delete Mailcow mailboxes from a specific domain via the 
 - `requests` library
 
 ```bash
-pip install requests
+python -m pip install -r requirements.txt
 ```
 
 ---
 
 ## Configuration
 
-Open `main.py` and set your values at the top:
+Update `mailcow_deleter.py` or use `config.yml` to set credentials. Example env or top-of-file values:
 
 ```python
 MAILCOW_HOST = "https://mail.yourdomain.com"
@@ -32,35 +32,48 @@ Your API key can be found in your Mailcow admin panel under **Configuration → 
 ## Usage
 
 ```bash
-python main.py
+python mailcow_deleter.py
 ```
 
 The tool will:
 
 1. Fetch all mailboxes under the configured domain
 2. Ask how many mailboxes you want to delete
-3. Ask for confirmation before doing anything
-4. Delete only the mailbox accounts — the domain is never modified
+3. Ask for confirmation before doing anything (unless `--confirm` is used)
+4. Delete mailbox accounts via the Mailcow admin API endpoint (configurable)
 
 ---
 
-## Example Output
+## Console UI and Example Output
+
+The script prints aligned, timestamped logs and a final tabular summary (using `tabulate`). Example:
 
 ```
-06:37:44  INF  Fetching mailboxes for yourdomain.com
-06:37:51  INF  Threads: 1283
+12:01:10  INF  Fetching mailboxes for example.com
+12:01:12  INF  Threads: 1283
 
-  How many mailboxes to delete? (max 1283): 500
+  How many mailboxes to delete? (max 1283): 10
 
-  Delete 500 mailboxes from yourdomain.com? (yes/no): yes
-
-06:37:52  INF  Checking | user1@yourdomain.com [1/500]
-06:37:52  COK  Deleted  | user1@yourdomain.com
-06:37:53  INF  Checking | user2@yourdomain.com [2/500]
-06:37:53  COK  Deleted  | user2@yourdomain.com
+12:01:13  INF  Checking | user1@example.com [1/10]
+12:01:13  COP  Deleted | user1@example.com
+12:01:14  INF  Checking | user2@example.com [2/10]
+12:01:14  DBG  Failed  | user2@example.com | {"type":"error","msg":"not found"}
 ...
-06:42:10  COK  Done | 500 mailboxes deleted. Domain untouched.
+
+Summary:
+Mailbox               Result     Info
+--------------------  ---------  ----------------------------------
+user1@example.com     SUCCESS    [...]
+user2@example.com     FAILED     {"type":"error","msg":"not found"}
+
+12:01:20  COP  Done | 10 mailboxes processed. Domain untouched.
 ```
+
+- `INF` — informational messages
+- `COP` — successful operations (green)
+- `DBG` — failures/errors (red)
+
+Use `--dry-run` first to preview actions; the summary will show matched vs deleted counts.
 
 ---
 
@@ -68,7 +81,7 @@ The tool will:
 
 - Only mailbox accounts are deleted — aliases, domains, and settings are left completely intact
 - Deletion is irreversible — all emails in deleted mailboxes are permanently gone
-- SSL verification is disabled by default for self-signed certificates
+-- SSL verification is disabled by default for self-signed certificates
 
 ---
 
